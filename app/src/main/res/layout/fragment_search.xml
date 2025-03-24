@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@color/white">
+
+    <androidx.appcompat.widget.SearchView
+        android:id="@+id/searchView"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="@drawable/rounded_corner_box_for_edittext_bg"
+        android:layout_margin="15dp"/>
+    <TextView
+        android:id="@+id/topSearchesTxt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/searchView"
+        android:layout_marginLeft="15dp"
+        android:text="Top searches"
+        android:textColor="@color/dark_purple"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:fontFamily="sans-serif-light"/>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/searchingItemRV"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/topSearchesTxt"
+        android:layout_margin="15dp"
+        tools:listitem="@layout/searching_items_recycler_layout"/>
+
+</RelativeLayout>

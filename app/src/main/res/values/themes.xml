@@ -1,0 +1,25 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:statusBarColor">@color/dark_purple</item>
+        <item name="colorPrimary">@color/purple</item>
+        <item name="colorOnPrimary">@color/white</item>
+    </style>
+    <style name="DialogAnimationDisplayLeft">
+        <item name="android:windowEnterAnimation">@anim/lefttorightdisplayleft</item>
+        <item name="android:windowExitAnimation">@anim/righttoleftdisplayleft</item>
+    </style>
+    <style name="DialogAnimationDisplayRight">
+        <item name="android:windowEnterAnimation">@anim/righttoleftdisplayright</item>
+        <item name="android:windowExitAnimation">@anim/lefttorightdisplayright</item>
+    </style>
+    <style name="DialogAnimationDisplayPopUp">
+        <item name="android:windowEnterAnimation">@anim/checkoutaddressdialogentry</item>
+        <item name="android:windowExitAnimation">@anim/checkoutaddressdialogexit</item>
+    </style>
+    <style name="DialogAnimationDisplayBottomTop">
+        <item name="android:windowEnterAnimation">@anim/bottomtotop</item>
+        <item name="android:windowExitAnimation">@anim/toptobottom</item>
+    </style>
+</resources>
