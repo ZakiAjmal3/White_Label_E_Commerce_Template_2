@@ -13,6 +13,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,6 +25,11 @@ import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.zaki.ecommerce_white_label_template2.Adapter.CheckOutAdapter;
 import com.zaki.ecommerce_white_label_template2.Adapter.CheckOutAddressChangingRVAdapter;
 import com.zaki.ecommerce_white_label_template2.Fragment.CartItemFragment;
@@ -31,8 +37,16 @@ import com.zaki.ecommerce_white_label_template2.Model.AddressItemModel;
 import com.zaki.ecommerce_white_label_template2.Model.CartItemModel;
 import com.zaki.ecommerce_white_label_template2.Model.CheckOutModel;
 import com.zaki.ecommerce_white_label_template2.R;
+import com.zaki.ecommerce_white_label_template2.Utils.Constant;
+import com.zaki.ecommerce_white_label_template2.Utils.MySingleton;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CheckOutOrderActivity extends AppCompatActivity {
     ImageView backBtn;
@@ -106,6 +120,7 @@ public class CheckOutOrderActivity extends AppCompatActivity {
         addressLine1Txt = findViewById(R.id.addressLine1);
         addressLine2Txt = findViewById(R.id.addressLine2);
         addressLine3Txt = findViewById(R.id.addressLine3);
+
     }
     Dialog drawerDialog;
     ImageView crossBtn;
