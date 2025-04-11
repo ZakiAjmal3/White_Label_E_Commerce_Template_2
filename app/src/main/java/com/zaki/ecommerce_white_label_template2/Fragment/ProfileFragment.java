@@ -26,16 +26,23 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.textfield.TextInputLayout;
 import com.zaki.ecommerce_white_label_template2.Activities.AddressShowingInputActivity;
 import com.zaki.ecommerce_white_label_template2.Activities.LoginActivity;
+import com.zaki.ecommerce_white_label_template2.Activities.MainActivity;
 import com.zaki.ecommerce_white_label_template2.Activities.MyOrdersActivity;
 import com.zaki.ecommerce_white_label_template2.R;
+import com.zaki.ecommerce_white_label_template2.Utils.SessionManager;
 
 public class ProfileFragment extends Fragment {
     ImageView editNameBtn;
-    LinearLayout myOrdersLL,addressLL,loginLL;
+    LinearLayout myOrdersLL,addressLL, logoutLL;
+    SessionManager sessionManager;
+    String authToken;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_profile, container, false);
+
+        sessionManager = new SessionManager(getContext());
+        authToken = sessionManager.getUserData().get("authToken");
 
         editNameBtn = view.findViewById(R.id.editNameBtn);
 
@@ -48,7 +55,7 @@ public class ProfileFragment extends Fragment {
 
         myOrdersLL = view.findViewById(R.id.myOrderLL);
         addressLL = view.findViewById(R.id.addressLL);
-        loginLL = view.findViewById(R.id.loginLL);
+        logoutLL = view.findViewById(R.id.logoutLL);
 
         myOrdersLL.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -62,10 +69,11 @@ public class ProfileFragment extends Fragment {
                 startActivity(new Intent(getContext(), AddressShowingInputActivity.class));
             }
         });
-        loginLL.setOnClickListener(new View.OnClickListener() {
+        logoutLL.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(getContext(), LoginActivity.class));
+                sessionManager.logout();
+                startActivity(new Intent(getContext(), MainActivity.class));
             }
         });
 

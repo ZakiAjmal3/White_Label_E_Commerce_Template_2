@@ -19,12 +19,14 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -40,6 +42,7 @@ import com.zaki.ecommerce_white_label_template2.Adapter.CartItemAdapter;
 import com.zaki.ecommerce_white_label_template2.Adapter.CouponSelectingAdapter;
 import com.zaki.ecommerce_white_label_template2.Model.CartItemModel;
 import com.zaki.ecommerce_white_label_template2.Model.CouponSelectingModel;
+import com.zaki.ecommerce_white_label_template2.Model.ProductImagesModel;
 import com.zaki.ecommerce_white_label_template2.R;
 import com.zaki.ecommerce_white_label_template2.Utils.Constant;
 import com.zaki.ecommerce_white_label_template2.Utils.MySingletonFragment;
@@ -54,29 +57,44 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CartItemFragment extends Fragment {
-    ImageView backBtn;
     RecyclerView cartRecyclerView;
     CartItemAdapter cartItemAdapter;
     ArrayList<CartItemModel> cartItemModelArrayList;
     ArrayList<CouponSelectingModel> couponSelectingModelArrayList;
-    TextView subTotalDisplayTxt, discountTxt, discountDisplayTxt, deliveryFeeDisplayTxt, totalAmountDisplayTxt,promoErrorTxt;
+    TextView subTotalDisplayTxt, discountTxt, discountDisplayTxt, deliveryFeeDisplayTxt,
+            finalAmountDisplayTxt,promoErrorTxt,promoCodeDiscountDisplayTxt;
+    LinearLayout promoCodeDiscountLL;
     Button applyPromoBtn,checkOutBtn;
     EditText promoCodeET;
     RelativeLayout noDataLayout,couponsViewRL;
     NestedScrollView mainLayout;
     SessionManager sessionManager;
+    String authToken;
+    Dialog progressBarDialog;
     int totalProductQuantity = 0;
-    EditText applyCouponEditTxt;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_cart, container, false);
 
         sessionManager = new SessionManager(getContext());
+        authToken = sessionManager.getUserData().get("authToken");
+
+        progressBarDialog = new Dialog(getContext());
+        progressBarDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        progressBarDialog.setContentView(R.layout.progress_bar_dialog);
+        progressBarDialog.setCancelable(false);
+        progressBarDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        progressBarDialog.getWindow().setGravity(Gravity.CENTER); // Center the dialog
+        progressBarDialog.getWindow().setLayout(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT); // Adjust the size
+        progressBarDialog.show();
 
         couponsViewRL = view.findViewById(R.id.couponsViewRL);
         noDataLayout = view.findViewById(R.id.noDataLayout);
+        noDataLayout.setVisibility(View.GONE);
         mainLayout = view.findViewById(R.id.mainLayout);
+        mainLayout.setVisibility(View.GONE);
+
 
         // Cart item Setup
         cartRecyclerView = view.findViewById(R.id.cartRecyclerView);
@@ -84,37 +102,67 @@ public class CartItemFragment extends Fragment {
 
         couponSelectingModelArrayList = new ArrayList<>();
         cartItemModelArrayList = new ArrayList<>();
-        cartItemModelArrayList = sessionManager.getCart();
 //        cartItemModelArrayList.add(new CartItemModel(,"Product 1","300","Large","Black",null,"2"));
 //        cartItemModelArrayList.add(new CartItemModel("Product 2","250","Large","Black",null,"2"));
 //        cartItemModelArrayList.add(new CartItemModel("Product 3","150","Large","Black",null,"2"));
 //        cartItemModelArrayList.add(new CartItemModel("Product 4","200","Large","Black",null,"2"));
 //        cartItemModelArrayList.add(new CartItemModel("Product 5","1500","Large","Blue",null,"2"));
 
-        cartItemAdapter = new CartItemAdapter(cartItemModelArrayList, CartItemFragment.this);
-        cartRecyclerView.setAdapter(cartItemAdapter);
-
-        checkCartItemArraySize();
+//        cartItemAdapter = new CartItemAdapter(cartItemModelArrayList, CartItemFragment.this);
+//        cartRecyclerView.setAdapter(cartItemAdapter);
 
         //Order Summary Setup
         subTotalDisplayTxt = view.findViewById(R.id.subTotalDisplayTxt);
         discountTxt = view.findViewById(R.id.discountTxt);
         discountDisplayTxt = view.findViewById(R.id.discountDisplayTxt);
         deliveryFeeDisplayTxt = view.findViewById(R.id.sizeTxt);
-        totalAmountDisplayTxt = view.findViewById(R.id.totalAmountDisplayTxt);
+        finalAmountDisplayTxt = view.findViewById(R.id.totalAmountDisplayTxt);
         promoErrorTxt = view.findViewById(R.id.invalidPromoTxt);
-        applyCouponEditTxt = view.findViewById(R.id.promoCodeET);
+        promoCodeDiscountDisplayTxt = view.findViewById(R.id.promoCodeDiscountDisplayTxt);
         applyPromoBtn = view.findViewById(R.id.applyCodeBtn);
         checkOutBtn = view.findViewById(R.id.goToCheckOutTxt);
         promoCodeET = view.findViewById(R.id.promoCodeET);
+        promoCodeDiscountLL = view.findViewById(R.id.promoCodeDiscountLL);
 
-        setOrderSummaryDetails();
+        if (sessionManager.isLoggedIn()) {
+            getCart();
+        }else {
+            cartItemModelArrayList = sessionManager.getCart();
+            if (!cartItemModelArrayList.isEmpty()) {
+                cartRecyclerView.setAdapter(new CartItemAdapter(cartItemModelArrayList, CartItemFragment.this));
+                mainLayout.setVisibility(View.VISIBLE);
+                noDataLayout.setVisibility(View.GONE);
+                progressBarDialog.dismiss();
+                setOrderSummaryDetails();
+            }else {
+                mainLayout.setVisibility(View.GONE);
+                noDataLayout.setVisibility(View.VISIBLE);
+                progressBarDialog.dismiss();
+            }
+        }
         setUpCouponDialog();
+//        setOrderSummaryDetails();
 
         checkOutBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(getContext(), CheckOutOrderActivity.class));
+                if (sessionManager.isLoggedIn()) {
+                    Intent intent = new Intent(getContext(), CheckOutOrderActivity.class);
+                    if (promoCodeDiscount != 0) {
+                        intent.putExtra("couponDiscount", promoCodeDiscount);
+                        Log.e("couponDiscount", String.valueOf(promoCodeDiscount));
+                    }
+                    startActivity(intent);
+                }else {
+                    Toast.makeText(getContext(), "You are not logged in, Please login to continue", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        couponsViewRL.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openCouponDialog();
             }
         });
 
@@ -129,102 +177,142 @@ public class CartItemFragment extends Fragment {
                 progressDialog.getWindow().setGravity(Gravity.CENTER); // Center the dialog
                 progressDialog.getWindow().setLayout(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT); // Adjust the size
                 progressDialog.show();
-                checkAndApplyPromoCode(applyCouponEditTxt.getText().toString().trim());
+                checkAndApplyPromoCode(promoCodeET.getText().toString().trim());
 
             }
         });
 
         getCoupons();
 
-        couponsViewRL.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openCouponDialog();
-            }
-        });
-
         return view;
     }
+    private void getCart() {
+        String cartURL = Constant.BASE_URL + "cart";
+        Log.e("ProductsURL", cartURL);
 
-    private void checkAndApplyPromoCode(String couponCode) {
-        boolean couponFound = false;
-        for (int i = 0; i < couponSelectingModelArrayList.size(); i++){
-            if (couponCode.equals(couponSelectingModelArrayList.get(i).getCouponCode())){
-                couponFound = true;
-                String couponType,couponDiscountType;
-                int couponDiscountValue,newFinalAmount,newTotalAmount,newDiscountAmount;
-                couponType = couponSelectingModelArrayList.get(i).getCouponType();
-                couponDiscountType = couponSelectingModelArrayList.get(i).getDiscountType();
-                if (couponType.equalsIgnoreCase("ORDER")){
-                    couponDiscountValue = Integer.parseInt(couponSelectingModelArrayList.get(i).getDiscountValue());
-                    if (couponDiscountType.equalsIgnoreCase("PERCENTAGE")){
-                        newTotalAmount = finalTotalAmount;
-                        newDiscountAmount = finalTotalAmount * couponDiscountValue / 100;
-                        newFinalAmount = finalTotalAmount - newDiscountAmount;
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, cartURL, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONObject dataObj = response.optJSONObject("data");
+                            if (dataObj == null) return;
 
-                        discountTxt.setText("Discount(-" + couponDiscountValue + "%)");
-                        subTotalDisplayTxt.setText("₹" + String.valueOf(newTotalAmount) + ".00");
-                        totalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
-                        discountDisplayTxt.setText("-₹" + String.valueOf(newDiscountAmount) + ".00");
-                    }else if (couponDiscountType.equalsIgnoreCase("FIXED_AMOUNT")){
-                        newTotalAmount = finalTotalAmount;
-                        newDiscountAmount = couponDiscountValue ;
-                        newFinalAmount = finalTotalAmount - newDiscountAmount;
-                        discountTxt.setText("Discount(-₹ " + couponDiscountValue);
-                        subTotalDisplayTxt.setText("₹" + String.valueOf(newTotalAmount) + ".00");
-                        totalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
-                        discountDisplayTxt.setText("-₹" + String.valueOf(newDiscountAmount) + ".00");
+                            String cartId = dataObj.optString("_id", null);
+                            JSONArray itemArray = dataObj.optJSONArray("items");
+                            if (itemArray == null) return;
+
+                            for (int i = 0; i < itemArray.length(); i++) {
+                                JSONObject productObj0 = itemArray.optJSONObject(i);
+                                if (productObj0 == null) continue;
+
+                                String quantity = productObj0.optString("quantity", "0");
+
+                                JSONObject productObj = productObj0.optJSONObject("product");
+                                if (productObj == null) continue;
+
+                                String productId = productObj.optString("_id", null);
+                                String title = productObj.optString("title", "Unknown Product");
+
+                                JSONObject slugObj = productObj.optJSONObject("meta");
+                                String slug = (slugObj != null) ? slugObj.optString("slug", null) : null;
+
+                                String MRP = productObj.optString("MRP", "0");
+                                String price = productObj.optString("price", "0");
+
+                                JSONObject discountObj = productObj.optJSONObject("discount");
+                                String discountAmount = (discountObj != null) ? discountObj.optString("amount", "0") : "0";
+                                String discountPercentage = (discountObj != null) ? discountObj.optString("percentage", "0") : "0";
+
+                                String stock = productObj.optString("stock", "0");
+                                String description = productObj.optString("description", "No description available");
+
+                                JSONArray tagsArray = productObj.optJSONArray("tags");
+                                String tags = parseTags(tagsArray != null ? tagsArray : new JSONArray());
+
+                                String SKU = productObj.optString("SKU", "N/A");
+
+                                ArrayList<ProductImagesModel> imagesList = new ArrayList<>();
+                                JSONArray imageArray = productObj.optJSONArray("images");
+                                if (imageArray != null) {
+                                    for (int j = 0; j < imageArray.length(); j++) {
+                                        String imageUrl = imageArray.optString(j, null);
+                                        if (imageUrl != null) {
+                                            Log.e("JSONIMG", imageUrl);
+                                            imagesList.add(new ProductImagesModel(imageUrl));
+                                        }
+                                    }
+                                }
+
+                                String store = productObj.optString("store", null);
+                                String category = productObj.optString("category", null);
+                                String inputTag = productObj.optString("inputTag", null);
+
+                                cartItemModelArrayList.add(new CartItemModel(cartId, productId, title, quantity,
+                                        slug, MRP, price, discountAmount, discountPercentage, stock, description,
+                                        tags, SKU, store, category, inputTag, "4", 0, imagesList));
+                            }
+
+                            if (!cartItemModelArrayList.isEmpty()) {
+                                checkCartItemArraySize();
+                                cartItemAdapter = new CartItemAdapter(cartItemModelArrayList, CartItemFragment.this);
+                                cartRecyclerView.setAdapter(cartItemAdapter);
+                                mainLayout.setVisibility(View.VISIBLE);
+                                noDataLayout.setVisibility(View.GONE);
+                                progressBarDialog.dismiss();
+                                setOrderSummaryDetails();
+                            } else {
+                                mainLayout.setVisibility(View.GONE);
+                                noDataLayout.setVisibility(View.VISIBLE);
+                                progressBarDialog.dismiss();
+                            }
+
+                        } catch (JSONException e) {
+                            progressBarDialog.dismiss();
+                            Log.e("JSONError", "Parsing error", e);
+                        }
                     }
-                } else if (couponType.equalsIgnoreCase("SHIPPING")) {
-                    newFinalAmount = finalTotalAmount - shippingCharge;
-                    shippingCharge = 0;
-                    totalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
-                    deliveryFeeDisplayTxt.setText("₹ 0.00");
-                }
-                progressDialog.dismiss();
-                break;
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        progressBarDialog.dismiss();
+                        String errorMessage = "Error: " + error.toString();
+
+                        if (error.networkResponse != null) {
+                            try {
+                                String jsonError = new String(error.networkResponse.data);
+                                JSONObject jsonObject = new JSONObject(jsonError);
+                                String message = jsonObject.optString("message", "Unknown error");
+                                Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        Log.e("CartError", errorMessage);
+                    }
+                }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/json");
+                headers.put("Authorization", "Bearer " + authToken);
+                return headers;
             }
-        }
-        if (!couponFound){
-            progressDialog.dismiss();
-            promoErrorTxt.setVisibility(View.VISIBLE);
-            Toast.makeText(getContext(), "Please enter a valid promo code", Toast.LENGTH_SHORT).show();
-        }
+        };
+
+        MySingletonFragment.getInstance(this).addToRequestQueue(jsonObjectRequest);
     }
 
-
-    int totalAmount = 0, finalTotalAmount = 0, shippingCharge = 99, discount = 0;
-    public void setOrderSummaryDetails() {
-        if (!cartItemModelArrayList.isEmpty()) {
-
-            for (int i = 0; i < cartItemModelArrayList.size(); i++) {
-                totalProductQuantity+= Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
-                totalAmount += Integer.parseInt(cartItemModelArrayList.get(i).getProductPrice()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
-            }
-            if (totalAmount > 500) {
-                shippingCharge = 0;
-                finalTotalAmount = totalAmount;
-            } else {
-                finalTotalAmount = totalAmount + shippingCharge;
-            }
-            subTotalDisplayTxt.setText("₹" + String.valueOf(totalAmount) + ".00");
-            totalAmountDisplayTxt.setText("₹" + String.valueOf(finalTotalAmount) + ".00");
-            discountDisplayTxt.setText("-₹" + String.valueOf(discount) + ".00");
-            deliveryFeeDisplayTxt.setText("+₹" + String.valueOf(shippingCharge) + ".00");
-
+    private String parseTags(JSONArray tagsArray) throws JSONException {
+        StringBuilder tags = new StringBuilder();
+        for (int j = 0; j < tagsArray.length(); j++) {
+            tags.append(tagsArray.getString(j)).append(", ");
         }
-    }
-    public int getShippingCharge(){
-        return shippingCharge;
-    }
-    public void checkCartItemArraySize() {
-        if (cartItemModelArrayList.isEmpty()){
-            mainLayout.setVisibility(View.GONE);
-            noDataLayout.setVisibility(View.VISIBLE);
-        }else {
-            mainLayout.setVisibility(View.VISIBLE);
-            noDataLayout.setVisibility(View.GONE);
+        if (tags.length() > 0) {
+            tags.setLength(tags.length() - 2); // Remove trailing comma and space
         }
+        return tags.toString();
     }
     private void getCoupons() {
         String examCategoryURL = Constant.BASE_URL + "discount?pageNumber=1&pageSize=10&storeId=67d2b3da82e71e00672df277";
@@ -291,6 +379,107 @@ public class CartItemFragment extends Fragment {
         };
         MySingletonFragment.getInstance(this).addToRequestQueue(jsonObjectRequest);
     }
+    int totalAmount = 0, finalTotalAmount = 0, shippingCharge = 0, discount = 0, promoCodeDiscount = 0;
+    public void setOrderSummaryDetails() {
+        totalAmount = 0; finalTotalAmount = 0; shippingCharge = 0; discount = 0;
+        if (!cartItemModelArrayList.isEmpty()) {
+            for (int i = 0; i < cartItemModelArrayList.size(); i++) {
+                totalProductQuantity+= Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
+                totalAmount += Integer.parseInt(cartItemModelArrayList.get(i).getProductPrice()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
+                discount += Integer.parseInt(cartItemModelArrayList.get(i).getDiscountAmount()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
+            }
+            if (totalAmount > 500) {
+                finalTotalAmount = totalAmount;
+            } else {
+                shippingCharge = 99;
+                finalTotalAmount = totalAmount + 99;
+            }
+            finalTotalAmount -= discount;
+            subTotalDisplayTxt.setText("₹" + String.valueOf(totalAmount) + ".00");
+            finalAmountDisplayTxt.setText("₹" + String.valueOf(finalTotalAmount) + ".00");
+            discountDisplayTxt.setText("-₹" + String.valueOf(discount) + ".00");
+            deliveryFeeDisplayTxt.setText("+₹" + String.valueOf(shippingCharge) + ".00");
+
+        }
+    }
+    public void checkCartItemArraySize() {
+        if (cartItemModelArrayList.isEmpty()){
+            mainLayout.setVisibility(View.GONE);
+            noDataLayout.setVisibility(View.VISIBLE);
+        }else {
+            mainLayout.setVisibility(View.VISIBLE);
+            noDataLayout.setVisibility(View.GONE);
+        }
+    }
+    public ArrayList<CartItemModel> getCartItemModelArrayList() {
+        return cartItemModelArrayList;
+    }
+    public int getShippingCharge(){
+        return shippingCharge;
+    }
+
+    private void checkAndApplyPromoCode(String couponCode) {
+        boolean couponFound = false;
+        for (int i = 0; i < couponSelectingModelArrayList.size(); i++){
+            if (couponCode.equals(couponSelectingModelArrayList.get(i).getCouponCode())){
+                couponFound = true;
+                String couponType,couponDiscountType;
+                int couponDiscountValue,newFinalAmount,newTotalAmount,newDiscountAmount;
+                couponType = couponSelectingModelArrayList.get(i).getCouponType();
+                couponDiscountType = couponSelectingModelArrayList.get(i).getDiscountType();
+                discount = 0;
+                for (int j = 0; j < cartItemModelArrayList.size(); j++){
+                    discount += Integer.parseInt(cartItemModelArrayList.get(j).getDiscountAmount());
+                }
+                if (couponType.equalsIgnoreCase("ORDER")){
+                    couponDiscountValue = Integer.parseInt(couponSelectingModelArrayList.get(i).getDiscountValue());
+                    if (couponDiscountType.equalsIgnoreCase("PERCENTAGE")){
+                        newTotalAmount = finalTotalAmount;
+                        newDiscountAmount = finalTotalAmount * couponDiscountValue / 100;
+                        newFinalAmount = finalTotalAmount - newDiscountAmount;
+                        promoCodeDiscount = newDiscountAmount;
+                        promoCodeDiscountDisplayTxt.setText("-₹" + promoCodeDiscount + ".00");
+                        promoCodeDiscountLL.setVisibility(View.VISIBLE);
+//                        subTotalDisplayTxt.setText("₹" + String.valueOf(newTotalAmount) + ".00");
+                        finalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
+//                        discountDisplayTxt.setText("-₹" + String.valueOf(newDiscountAmount) + ".00");
+                        promoCodeET.setText(couponCode);
+                        promoErrorTxt.setVisibility(View.VISIBLE);
+                        promoErrorTxt.setText("Promo Code Applied");
+                        promoErrorTxt.setTextColor(ContextCompat.getColor(getContext(),R.color.green));
+                    }else if (couponDiscountType.equalsIgnoreCase("FIXED_AMOUNT")){
+                        newTotalAmount = finalTotalAmount;
+                        newDiscountAmount = couponDiscountValue ;
+                        newFinalAmount = finalTotalAmount - newDiscountAmount;
+                        promoCodeDiscount = newDiscountAmount;
+                        promoCodeDiscountDisplayTxt.setText("-₹" + promoCodeDiscountLL + ".00");
+                        promoCodeDiscountLL.setVisibility(View.VISIBLE);
+//                        subTotalDisplayTxt.setText("₹" + String.valueOf(newTotalAmount) + ".00");
+                        finalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
+//                        discountDisplayTxt.setText("-₹" + String.valueOf(newDiscountAmount) + ".00");
+                        promoErrorTxt.setVisibility(View.VISIBLE);
+                        promoCodeET.setText(couponCode);
+                        promoErrorTxt.setText("Promo Code Applied");
+                        promoErrorTxt.setTextColor(ContextCompat.getColor(getContext(),R.color.green));
+                    }
+                } else if (couponType.equalsIgnoreCase("SHIPPING")) {
+                    newFinalAmount = finalTotalAmount - shippingCharge;
+                    shippingCharge = 0;
+                    finalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
+                    deliveryFeeDisplayTxt.setText("₹ 0.00");
+                    promoCodeET.setText(couponCode);
+                }
+                progressDialog.dismiss();
+                break;
+            }
+        }
+        if (!couponFound){
+            progressDialog.dismiss();
+            promoErrorTxt.setVisibility(View.VISIBLE);
+            Toast.makeText(getContext(), "Please enter a valid promo code", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     Dialog couponDialog,progressDialog;
     ImageView crossBtn;
     RecyclerView couponRecycler;
@@ -339,35 +528,52 @@ public class CartItemFragment extends Fragment {
         progressDialog.getWindow().setLayout(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT); // Adjust the size
         progressDialog.show();
 
-        String couponType,couponDiscountType;
+        String couponType,couponDiscountType,couponCodeStr;
         int couponDiscountValue,newFinalAmount,newTotalAmount,newDiscountAmount;
         couponType = couponSelectingModelArrayList.get(position).getCouponType();
         couponDiscountType = couponSelectingModelArrayList.get(position).getDiscountType();
+        couponCodeStr = couponSelectingModelArrayList.get(position).getCouponCode();
+        discount = 0;
+        for (int i = 0; i < cartItemModelArrayList.size(); i++){
+            discount += Integer.parseInt(cartItemModelArrayList.get(i).getDiscountAmount());
+        }
         if (couponType.equalsIgnoreCase("ORDER")){
             couponDiscountValue = Integer.parseInt(couponSelectingModelArrayList.get(position).getDiscountValue());
             if (couponDiscountType.equalsIgnoreCase("PERCENTAGE")){
                 newTotalAmount = finalTotalAmount;
                 newDiscountAmount = finalTotalAmount * couponDiscountValue / 100;
                 newFinalAmount = finalTotalAmount - newDiscountAmount;
-
-                discountTxt.setText("Discount(-" + couponDiscountValue + "%)");
-                subTotalDisplayTxt.setText("₹" + String.valueOf(newTotalAmount) + ".00");
-                totalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
-                discountDisplayTxt.setText("-₹" + String.valueOf(newDiscountAmount) + ".00");
+                promoCodeDiscount = newDiscountAmount;
+                promoCodeDiscountDisplayTxt.setText("-₹" + promoCodeDiscount + ".00");
+                promoCodeDiscountLL.setVisibility(View.VISIBLE);
+//                subTotalDisplayTxt.setText("₹" + String.valueOf(newTotalAmount) + ".00");
+                finalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
+//                discountDisplayTxt.setText("-₹" + String.valueOf(newDiscountAmount) + ".00");
+                promoErrorTxt.setVisibility(View.VISIBLE);
+                promoCodeET.setText(couponCodeStr);
+                promoErrorTxt.setText("Promo Code Applied");
+                promoErrorTxt.setTextColor(ContextCompat.getColor(getContext(),R.color.green));
             }else if (couponDiscountType.equalsIgnoreCase("FIXED_AMOUNT")){
                 newTotalAmount = finalTotalAmount;
                 newDiscountAmount = couponDiscountValue ;
                 newFinalAmount = finalTotalAmount - newDiscountAmount;
-                discountTxt.setText("Discount(-₹ " + couponDiscountValue);
-                subTotalDisplayTxt.setText("₹" + String.valueOf(newTotalAmount) + ".00");
-                totalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
-                discountDisplayTxt.setText("-₹" + String.valueOf(newDiscountAmount) + ".00");
+                promoCodeDiscount = newDiscountAmount;
+                promoCodeDiscountDisplayTxt.setText("-₹" + promoCodeDiscount + ".00");
+                promoCodeDiscountLL.setVisibility(View.VISIBLE);
+//                subTotalDisplayTxt.setText("₹" + String.valueOf(newTotalAmount) + ".00");
+                finalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
+//                discountDisplayTxt.setText("-₹" + String.valueOf(newDiscountAmount) + ".00");
+                promoErrorTxt.setVisibility(View.VISIBLE);
+                promoCodeET.setText(couponCodeStr);
+                promoErrorTxt.setText("Promo Code Applied");
+                promoErrorTxt.setTextColor(ContextCompat.getColor(getContext(),R.color.green));
             }
         } else if (couponType.equalsIgnoreCase("SHIPPING")) {
             newFinalAmount = finalTotalAmount - shippingCharge;
             shippingCharge = 0;
-            totalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
+            finalAmountDisplayTxt.setText("₹" + String.valueOf(newFinalAmount) + ".00");
             deliveryFeeDisplayTxt.setText("₹ 0.00");
+            promoCodeET.setText(couponCodeStr);
         }
 
         new Handler().postDelayed(new Runnable() {
@@ -377,8 +583,5 @@ public class CartItemFragment extends Fragment {
                 progressDialog.dismiss();
             }
         },500);
-    }
-    public ArrayList<CartItemModel> getCartItemModelArrayList() {
-        return cartItemModelArrayList;
     }
 }

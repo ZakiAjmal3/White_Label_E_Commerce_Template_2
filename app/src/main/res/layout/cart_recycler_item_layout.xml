@@ -103,11 +103,12 @@
             android:textSize="20sp"
             android:textColor="@color/black"
             android:textStyle="bold"
-            android:layout_marginRight="30dp"
             android:layout_below="@id/colorLL"
             android:layout_toRightOf="@id/imgCardView"
+            android:layout_toLeftOf="@id/quantityLL"
             android:layout_marginLeft="10dp"/>
         <LinearLayout
+            android:id="@+id/quantityLL"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"

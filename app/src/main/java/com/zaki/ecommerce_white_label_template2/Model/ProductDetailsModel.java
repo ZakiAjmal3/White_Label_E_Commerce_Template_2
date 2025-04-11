@@ -2,22 +2,20 @@ package com.zaki.ecommerce_white_label_template2.Model;
 
 import java.util.ArrayList;
 
-public class CartItemModel {
-    String cartId,productId, productTitle,productQuantity,slug,productMRP,productPrice,discountAmount,discountPercentage,stock,
+public class ProductDetailsModel {
+    String productId, productTitle,slug,productMRP,productPrice,discountAmount,discountPercentage,stock,
             description,tags,productSKU,store,category,inputTag,productRating;
     int wishListImgToggle;
     ArrayList<ProductImagesModel> productImagesModelsArrList;
 
-    public CartItemModel(String cartId, String productId, String productTitle, String productQuantity,
-                         String slug, String productMRP, String productPrice, String discountAmount,
-                         String discountPercentage, String stock, String description, String tags,
-                         String productSKU, String store, String category, String inputTag,
-                         String productRating, int wishListImgToggle,
-                         ArrayList<ProductImagesModel> productImagesModelsArrList) {
-        this.cartId = cartId;
+    public ProductDetailsModel(String productId, String productTitle, String slug,
+                               String productMRP, String productPrice, String discountAmount,
+                               String discountPercentage, String stock, String description, String tags,
+                               String productSKU, String store, String category, String inputTag,
+                               String productRating, int wishListImgToggle,
+                               ArrayList<ProductImagesModel> productImagesModelsArrList) {
         this.productId = productId;
         this.productTitle = productTitle;
-        this.productQuantity = productQuantity;
         this.slug = slug;
         this.productMRP = productMRP;
         this.productPrice = productPrice;
@@ -33,22 +31,6 @@ public class CartItemModel {
         this.productRating = productRating;
         this.wishListImgToggle = wishListImgToggle;
         this.productImagesModelsArrList = productImagesModelsArrList;
-    }
-
-    public String getProductQuantity() {
-        return productQuantity;
-    }
-
-    public void setProductQuantity(String productQuantity) {
-        this.productQuantity = productQuantity;
-    }
-
-    public String getCartId() {
-        return cartId;
-    }
-
-    public void setCartId(String cartId) {
-        this.cartId = cartId;
     }
 
     public String getProductId() {

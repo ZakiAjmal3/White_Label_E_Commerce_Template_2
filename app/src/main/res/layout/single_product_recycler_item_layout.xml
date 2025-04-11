@@ -35,5 +35,5 @@
         android:layout_marginBottom="10dp"
         android:textColor="@color/black"
         android:layout_below="@id/productNameTxt"
-        android:textSize="16dp"/>
+        android:textSize="15dp"/>
 </RelativeLayout>

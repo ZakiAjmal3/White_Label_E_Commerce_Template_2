@@ -28,6 +28,7 @@ public class WishlistAdapter extends RecyclerView.Adapter<WishlistAdapter.ViewHo
     ArrayList<WishListModel> productDetailsList;
     Fragment context;
     SessionManager sessionManager;
+
     public WishlistAdapter(ArrayList<WishListModel> productDetailsList, Fragment context) {
         this.productDetailsList = productDetailsList;
         this.context = context;
@@ -83,7 +84,7 @@ public class WishlistAdapter extends RecyclerView.Adapter<WishlistAdapter.ViewHo
             holder.wishlistImg.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    sessionManager.removeWishListItem(new WishListModel(productDetailsList.get(position).getProductId(),productDetailsList.get(position).getProductName(),productDetailsList.get(position).getProductPrice(),"3.5",productDetailsList.get(position).getProductImg(),0));
+                    sessionManager.removeWishListItem(productDetailsList.get(position).getProductId());
                     productDetailsList.remove(position);
                     notifyDataSetChanged();
                     ((WishListFragment) context).checkWishListItemArraySize();

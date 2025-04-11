@@ -7,6 +7,8 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
@@ -17,21 +19,32 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
+import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.zaki.ecommerce_white_label_template2.Adapter.ProductRecyclerForFragmentAdapter;
 import com.zaki.ecommerce_white_label_template2.Adapter.TabLayoutAdapter;
 import com.zaki.ecommerce_white_label_template2.Fragment.AllProductFragment;
 import com.zaki.ecommerce_white_label_template2.Fragment.CartItemFragment;
@@ -45,10 +58,23 @@ import com.zaki.ecommerce_white_label_template2.Fragment.SearchFragment;
 import com.zaki.ecommerce_white_label_template2.Fragment.SofasFragment;
 import com.zaki.ecommerce_white_label_template2.Fragment.TablesFragment;
 import com.zaki.ecommerce_white_label_template2.Fragment.WishListFragment;
+import com.zaki.ecommerce_white_label_template2.Model.AllCollectionsModel;
+import com.zaki.ecommerce_white_label_template2.Model.ProductDetailsModel;
+import com.zaki.ecommerce_white_label_template2.Model.ProductImagesModel;
 import com.zaki.ecommerce_white_label_template2.Model.ProductsRecyclerModel;
 import com.zaki.ecommerce_white_label_template2.R;
+import com.zaki.ecommerce_white_label_template2.Utils.Constant;
+import com.zaki.ecommerce_white_label_template2.Utils.MySingleton;
+import com.zaki.ecommerce_white_label_template2.Utils.MySingletonFragment;
+import com.zaki.ecommerce_white_label_template2.Utils.SessionManager;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HomePageActivity extends AppCompatActivity {
     TabLayout tabLayout;
@@ -59,6 +85,10 @@ public class HomePageActivity extends AppCompatActivity {
     static Fragment currentFragment;
     Boolean loadOtherFragment = false;
     CardView filterCardView;
+    ArrayList<AllCollectionsModel> collectionIdsArrayList = new ArrayList<>();
+    SessionManager sessionManager;
+    String storeId,authToken;
+    TabLayoutAdapter adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,12 +102,31 @@ public class HomePageActivity extends AppCompatActivity {
                 return insets;
             });
         }
+
+        sessionManager = new SessionManager(this);
+        storeId = sessionManager.getStoreId();
+
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         topBar = findViewById(R.id.topBar);
         tabLayoutRL = findViewById(R.id.tabLayoutRL);
         frameLayout = findViewById(R.id.frameLayout);
 
         filterCardView = findViewById(R.id.filterCardView);
+
+        // Handle back press using OnBackPressedDispatcher
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (currentFragment instanceof AllProductFragment) {
+                    // If on HomeFragment, use the default behavior
+                    setEnabled(false); // Disable this callback
+                } else {
+                    // If on another fragment, navigate back to HomeFragment
+                    loadFragment(new AllProductFragment());
+                    bottomNavigationView.setSelectedItemId(R.id.home);
+                }
+            }
+        });
 
         bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override
@@ -105,14 +154,17 @@ public class HomePageActivity extends AppCompatActivity {
                     tabLayoutRL.setVisibility(View.GONE);
                     frameLayout.setVisibility(View.VISIBLE);
                     loadFragment(new CartItemFragment());
-                }else if (item.getItemId() == R.id.profile){
-                    filterCardView.setVisibility(View.GONE);
-                    tabLayoutRL.setVisibility(View.GONE);
-                    topBar.setVisibility(View.GONE);
-                    frameLayout.setVisibility(View.VISIBLE);
-                    loadFragment(new ProfileFragment());
-//                       startActivity(new Intent(HomePageActivity.this,LoginActivity.class));
+                }else if (item.getItemId() == R.id.profile) {
+                    if (sessionManager.isLoggedIn()) {
+                        filterCardView.setVisibility(View.GONE);
+                        tabLayoutRL.setVisibility(View.GONE);
+                        topBar.setVisibility(View.GONE);
+                        frameLayout.setVisibility(View.VISIBLE);
+                        loadFragment(new ProfileFragment());
+                    }else {
+                        startActivity(new Intent(HomePageActivity.this,LoginActivity.class));
                     }
+                }
                 return true;
             }
         });
@@ -139,7 +191,7 @@ public class HomePageActivity extends AppCompatActivity {
         tabLayout = findViewById(R.id.tabLayout);
         viewPager = findViewById(R.id.viewPager);
 
-        TabLayoutAdapter adapter = new TabLayoutAdapter(HomePageActivity.this);
+        adapter = new TabLayoutAdapter(HomePageActivity.this);
         viewPager.setAdapter(adapter);
 
         // Link TabLayout with ViewPager
@@ -194,7 +246,77 @@ public class HomePageActivity extends AppCompatActivity {
                 });
             }
         }).attach();
+
+        getAllCollections();
+
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+
+                Fragment fragment = adapter.getRegisteredFragment(position);
+                if (fragment instanceof AllProductFragment) {
+                    ((AllProductFragment) fragment).onTabVisible();
+                }
+            }
+        });
     }
+
+    private void getAllCollections() {
+        String newArrivalURL = Constant.BASE_URL + "collection/" + sessionManager.getStoreId() + "?pageNumber=1&pageSize=10";
+        Log.e("ProductsURL", newArrivalURL);
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, newArrivalURL, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONArray dataArray = response.optJSONArray("data");
+                            if (dataArray != null) {
+
+                                for (int i = 0; i < dataArray.length(); i++) {
+                                    JSONObject collectionObj = dataArray.optJSONObject(i);
+                                    if (collectionObj != null) {
+                                        String collectionId = collectionObj.optString("_id", null);
+                                        String collectionName = collectionObj.optString("name", null);
+                                        collectionIdsArrayList.add(new AllCollectionsModel(collectionId,collectionName));
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        String errorMessage = "Error: " + error.toString();
+                        if (error.networkResponse != null) {
+                            try {
+                                String jsonError = new String(error.networkResponse.data);
+                                JSONObject jsonObject = new JSONObject(jsonError);
+                                String message = jsonObject.optString("message", "Unknown error");
+                                Toast.makeText(HomePageActivity.this, message, Toast.LENGTH_LONG).show();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        Log.e("ExamListError", errorMessage);
+                    }
+                }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/json");
+                headers.put("Authorization", "Bearer " + authToken);
+                return headers;
+            }
+        };
+
+        MySingleton.getInstance(this).addToRequestQueue(jsonObjectRequest);
+    }
+
     public void loadFragment(Fragment fragment) {
         getSupportFragmentManager()
                 .beginTransaction()
@@ -264,7 +386,8 @@ public class HomePageActivity extends AppCompatActivity {
                 if (currentFragment instanceof AllProductFragment){
                     ((AllProductFragment) currentFragment).sortProductsByPrice(priceFilter);
                     ((AllProductFragment) currentFragment).sortProductsByDate(sortByFilter);
-                }else  if (currentFragment instanceof CeramicsFragment){
+                }
+                else  if (currentFragment instanceof CeramicsFragment){
                     ((CeramicsFragment) currentFragment).sortProductsByPrice(priceFilter);
                     ((CeramicsFragment) currentFragment).sortProductsByDate(sortByFilter);
                 }else  if (currentFragment instanceof ChairsFragment){
@@ -298,6 +421,88 @@ public class HomePageActivity extends AppCompatActivity {
         filterDialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             filterDialog.getWindow().setStatusBarColor(R.color.white);
+        }
+    }
+    private final int MAX_RETRY = 5;
+    private final long RETRY_DELAY = 200; // in milliseconds
+    public void setWishlistCount() {
+        setWishlistCountWithRetry(0);
+    }
+    private void setWishlistCountWithRetry(int attempt) {
+        if (attempt >= MAX_RETRY) return;
+
+        int count = sessionManager.getWishListCount();
+        BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.wishlist);
+
+        if (badge == null && attempt < MAX_RETRY) {
+            // Retry after delay
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                setWishlistCountWithRetry(attempt + 1);
+            }, RETRY_DELAY);
+            return;
+        }
+
+        if (count == 0) {
+            badge.setVisible(false);
+        } else {
+            badge.setVisible(true);
+            badge.setNumber(count);
+            badge.setBackgroundColor(ContextCompat.getColor(HomePageActivity.this, R.color.red));
+            badge.setBadgeTextColor(ContextCompat.getColor(HomePageActivity.this, R.color.white));
+        }
+    }
+    public void setCartCount() {
+        setCartCountWithRetry(0);
+    }
+
+    private void setCartCountWithRetry(int attempt) {
+        if (attempt >= MAX_RETRY) return;
+
+        int count = sessionManager.getCartCount();
+        BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.cart);
+
+        if (badge == null && attempt < MAX_RETRY) {
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                setCartCountWithRetry(attempt + 1);
+            }, RETRY_DELAY);
+            return;
+        }
+
+        if (count == 0) {
+            badge.setVisible(false);
+        } else {
+            badge.setVisible(true);
+            badge.setNumber(count);
+            badge.setBackgroundColor(ContextCompat.getColor(HomePageActivity.this, R.color.red));
+            badge.setBadgeTextColor(ContextCompat.getColor(HomePageActivity.this, R.color.white));
+        }
+    }
+
+    public ArrayList<AllCollectionsModel> getCollectionIdsArrayList() {
+        return collectionIdsArrayList;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Fragment fragment2 = getCurrentFragment();
+//        Log.e("tabFrag",fragment2.toString());
+        if (fragment2 instanceof AllProductFragment) {
+            ((AllProductFragment) fragment2).onTabVisible();
+        }
+        setWishlistCount();
+        setCartCount();
+        Fragment fragment = getCurrentFragment();
+        if (fragment instanceof WishListFragment) {
+            bottomNavigationView.setSelectedItemId(R.id.wishlist);
+        }else if (fragment instanceof CartItemFragment){
+            bottomNavigationView.setSelectedItemId(R.id.cart);
+        }else if (fragment instanceof ProfileFragment){
+            bottomNavigationView.setSelectedItemId(R.id.profile);
+        }else if (fragment instanceof AllProductFragment){
+            bottomNavigationView.setSelectedItemId(R.id.home);
+        }else if (fragment instanceof SearchFragment){
+            bottomNavigationView.setSelectedItemId(R.id.search);
         }
     }
 }

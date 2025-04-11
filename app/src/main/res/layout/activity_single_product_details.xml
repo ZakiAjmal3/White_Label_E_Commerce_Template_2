@@ -47,8 +47,10 @@
             android:layout_marginTop="10dp"/>
     </RelativeLayout>
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/mainNestedLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:visibility="gone"
         android:layout_below="@id/topBar">
         <RelativeLayout
             android:layout_width="match_parent"
@@ -103,8 +105,8 @@
                 android:layout_marginLeft="15dp"
                 android:textSize="18sp"
                 android:textColor="@color/black" />
-            <TextView
-                android:id="@+id/productionDescDisplayTxt"
+            <WebView
+                android:id="@+id/productionDescriptionWebView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/product_description"
@@ -118,7 +120,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="@color/light_dark_grey"
-                android:layout_below="@id/productionDescDisplayTxt"
+                android:layout_below="@id/productionDescriptionWebView"
                 android:layout_margin="15dp"/>
             <TextView
                 android:id="@+id/dimensionTxt"

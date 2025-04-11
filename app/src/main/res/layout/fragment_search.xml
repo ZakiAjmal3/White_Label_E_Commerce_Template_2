@@ -23,12 +23,50 @@
         android:textStyle="bold"
         android:textSize="20sp"
         android:fontFamily="sans-serif-light"/>
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/searchingItemRV"
+    <RelativeLayout
+        android:id="@+id/noDataLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
+        android:background="@color/white"
         android:layout_below="@id/topSearchesTxt"
-        android:layout_margin="15dp"
-        tools:listitem="@layout/searching_items_recycler_layout"/>
-
+            android:visibility="gone">
+        <ImageView
+            android:id="@+id/emptyIV"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_centerInParent="true"
+            android:src="@drawable/ic_empty_box"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No Item Found"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+            android:layout_below="@id/emptyIV"
+            android:layout_centerHorizontal="true"/>
+    </RelativeLayout>
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/dressNestedScroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/topSearchesTxt"
+        android:layout_margin="10dp">
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/productRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+            <ProgressBar
+                android:id="@+id/nextItemLoadingProgressBar"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:visibility="visible"
+                android:layout_below="@id/productRecyclerView"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/black"
+                android:layout_centerHorizontal="true"/>
+        </RelativeLayout>
+    </androidx.core.widget.NestedScrollView>
 </RelativeLayout>

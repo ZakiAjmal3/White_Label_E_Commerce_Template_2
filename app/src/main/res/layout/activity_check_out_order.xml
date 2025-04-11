@@ -83,7 +83,7 @@
                 android:layout_marginBottom="7.5dp"
                 android:layout_marginLeft="15dp"
                 android:layout_marginRight="15dp"
-                app:cardBackgroundColor="@color/light_dark_grey"
+                app:cardBackgroundColor="@color/white2"
                 app:cardCornerRadius="15dp"
                 app:strokeWidth="1dp">
 
@@ -117,6 +117,7 @@
                         android:fontFamily="sans-serif-light"
                         android:textColor="@color/black"/>
                     <TextView
+                        android:id="@+id/loginUserName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_below="@id/loginTxt"
@@ -137,7 +138,7 @@
                 android:layout_marginLeft="15dp"
                 android:layout_marginRight="15dp"
                 android:layout_below="@id/card1"
-                app:cardBackgroundColor="@color/light_dark_grey"
+                app:cardBackgroundColor="@color/white2"
                 app:cardCornerRadius="15dp"
                 app:strokeWidth="1dp">
 
@@ -216,7 +217,7 @@
                 android:layout_marginLeft="15dp"
                 android:layout_marginRight="15dp"
                 android:layout_below="@id/card2"
-                app:cardBackgroundColor="@color/light_dark_grey"
+                app:cardBackgroundColor="@color/white2"
                 app:cardCornerRadius="15dp"
                 app:strokeWidth="1dp">
 
@@ -286,7 +287,7 @@
                 android:layout_marginLeft="15dp"
                 android:layout_marginRight="15dp"
                 android:layout_below="@id/card3"
-                app:cardBackgroundColor="@color/white"
+                app:cardBackgroundColor="@color/white2"
                 app:cardCornerRadius="15dp"
                 app:strokeWidth="1dp">
                 <RelativeLayout
@@ -361,10 +362,40 @@
                             android:textStyle="bold"/>
                     </LinearLayout>
                     <LinearLayout
-                        android:id="@+id/deliveryFeeLL"
+                        android:id="@+id/promoCodeDiscountLL"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_below="@+id/discountLL"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
+                        android:layout_marginTop="10dp"
+                        android:visibility="gone"
+                        android:weightSum="2"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Promo Discount"
+                            android:textSize="17sp"
+                            android:textColor="@color/green"
+                            />
+                        <TextView
+                            android:id="@+id/promoCodeDiscountDisplayTxt"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textAlignment="viewEnd"
+                            android:textSize="17sp"
+                            android:text="132"
+                            android:textColor="@color/red"
+                            android:textStyle="bold"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/deliveryFeeLL"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_below="@+id/promoCodeDiscountLL"
                         android:layout_marginLeft="10dp"
                         android:layout_marginRight="10dp"
                         android:layout_marginTop="10dp"
@@ -420,6 +451,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <Button
+                android:id="@+id/proceedToPayment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Proceed to payment"
