@@ -385,7 +385,7 @@ public class CartItemFragment extends Fragment {
         if (!cartItemModelArrayList.isEmpty()) {
             for (int i = 0; i < cartItemModelArrayList.size(); i++) {
                 totalProductQuantity+= Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
-                totalAmount += Integer.parseInt(cartItemModelArrayList.get(i).getProductPrice()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
+                totalAmount += Integer.parseInt(cartItemModelArrayList.get(i).getProductMRP()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
                 discount += Integer.parseInt(cartItemModelArrayList.get(i).getDiscountAmount()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
             }
             if (totalAmount > 500) {

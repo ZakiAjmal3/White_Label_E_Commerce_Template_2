@@ -71,27 +71,32 @@ public class ProductRecyclerForFragmentAdapter extends RecyclerView.Adapter<Prod
         holder.productName.setText(productArrayList.get(position).getProductTitle());
 
         if (!productArrayList.get(position).getDiscountAmount().equals("0")) {
-            String originalPrice, disPercent, sellingPrice;
-            originalPrice = productArrayList.get(position).getProductMRP();
-            disPercent = productArrayList.get(position).getDiscountPercentage();
-            sellingPrice = productArrayList.get(position).getProductPrice();
+            String originalPrice = productArrayList.get(position).getProductMRP();
+            String disPercent = productArrayList.get(position).getDiscountPercentage();
+            String sellingPrice = productArrayList.get(position).getProductPrice();
 
             // Create a SpannableString for the original price with strikethrough
             SpannableString spannableOriginalPrice = new SpannableString("₹" + originalPrice);
             spannableOriginalPrice.setSpan(new StrikethroughSpan(), 0, spannableOriginalPrice.length(), 0);
-            // Create the discount text
-            String discountText = "(-" + disPercent + "%)";
-            spannableText = new SpannableStringBuilder();
-            spannableText.append("₹" + sellingPrice + " ");
-            spannableText.append(spannableOriginalPrice);
-            spannableText.append(" " + discountText);
-            // Set the color for the discount percentage
-            int startIndex = spannableText.length() - discountText.length();
-            spannableText.setSpan(new ForegroundColorSpan(Color.GREEN), startIndex, spannableText.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
+            // Combine selling price + original price
+            spannableText = new SpannableStringBuilder();
+            spannableText.append("₹").append(sellingPrice).append(" ");
+            spannableText.append(spannableOriginalPrice);
+
+            // Set combined text to productPrice
             holder.productPrice.setText(spannableText);
-        }else {
+
+            // Set discount % separately to productDiscount with green color
+            String discountText = "-" + disPercent + "%";
+            SpannableString coloredDiscount = new SpannableString(discountText);
+            coloredDiscount.setSpan(new ForegroundColorSpan(Color.GREEN), 0, discountText.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            holder.productDiscount.setText(" (" + coloredDiscount + ")");
+            holder.productDiscount.setVisibility(View.VISIBLE);
+        } else {
+            // No discount, just show the selling price
             holder.productPrice.setText("₹" + productArrayList.get(position).getProductPrice());
+            holder.productDiscount.setVisibility(View.GONE);
         }
 
         Glide.with(context).load(productArrayList.get(position).getProductImagesModelsArrList().get(0).getProductImage()).into(holder.productImg);
@@ -273,13 +278,14 @@ public class ProductRecyclerForFragmentAdapter extends RecyclerView.Adapter<Prod
         return productArrayList.size();
     }
     public class ViewHolder extends RecyclerView.ViewHolder {
-        TextView productName,productPrice;
+        TextView productName,productPrice,productDiscount;
         ImageView productImg,wishListImg;
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
 
             productName = itemView.findViewById(R.id.productNameTxt);
             productPrice = itemView.findViewById(R.id.productPriceTxt);
+            productDiscount = itemView.findViewById(R.id.productDiscountTxt);
             productImg = itemView.findViewById(R.id.productImg);
             wishListImg = itemView.findViewById(R.id.heartImg);
 

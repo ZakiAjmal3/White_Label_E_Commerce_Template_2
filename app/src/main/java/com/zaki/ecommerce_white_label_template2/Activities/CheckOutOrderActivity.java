@@ -304,7 +304,7 @@ public class CheckOutOrderActivity extends AppCompatActivity {
     public void setOrderSummaryDetails() {
         couponDiscount = Integer.parseInt(couponDiscountStr);
         for (int i = 0; i < checkOutModelArrayList.size(); i++) {
-            totalAmount += Integer.parseInt(checkOutModelArrayList.get(i).getProductPrice()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
+            totalAmount += Integer.parseInt(checkOutModelArrayList.get(i).getProductMRP()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
             discount += Integer.parseInt(cartItemModelArrayList.get(i).getDiscountAmount()) * Integer.parseInt(cartItemModelArrayList.get(i).getProductQuantity());
         }
         if (totalAmount > 500){

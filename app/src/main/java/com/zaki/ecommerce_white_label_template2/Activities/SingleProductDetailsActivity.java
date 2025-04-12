@@ -62,7 +62,7 @@ import java.util.Objects;
 
 public class SingleProductDetailsActivity extends AppCompatActivity {
     ImageView backBtn,productImg, quantityPlusIV, quantityMinusIV;
-    TextView productTitleTxt, productPriceTxt,quantityTxt;
+    TextView productTitleTxt, productPriceTxt, productDiscountTxt,quantityTxt;
     WebView descriptionWebView;
     int quantityInt = 1;
     RecyclerView newProductRecyclerView,popularProductRecyclerView;
@@ -103,6 +103,7 @@ public class SingleProductDetailsActivity extends AppCompatActivity {
         productImg = findViewById(R.id.productImg);
         productTitleTxt = findViewById(R.id.productTitleTxt);
         productPriceTxt = findViewById(R.id.productPriceTxt);
+        productDiscountTxt = findViewById(R.id.productDiscountTxtTxt);
         nestedScrollView = findViewById(R.id.mainNestedLayout);
         descriptionWebView = findViewById(R.id.productionDescriptionWebView);
 
@@ -328,52 +329,72 @@ public class SingleProductDetailsActivity extends AppCompatActivity {
     }
     SpannableStringBuilder spannableText;
     private void setProductDetails() {
-        productNameStr = singleProductArrayList.get(0).getProductTitle();
-        productRatingStr = singleProductArrayList.get(0).getProductRating();
+        ProductDetailsModel product = singleProductArrayList.get(0);
+
+        // Set product name
+        productNameStr = product.getProductTitle();
+        productRatingStr = product.getProductRating();
 
         productTitleTxt.setText(productNameStr);
         productTitleTxt.setEllipsize(TextUtils.TruncateAt.END);
         productTitleTxt.setMaxLines(2);
 
-        productDescription = singleProductArrayList.get(0).getDescription();
+        // Set product description in WebView
+        productDescription = product.getDescription();
         descriptionWebView.loadData(productDescription, "text/html", "UTF-8");
 
-        Glide.with(this).load(singleProductArrayList.get(0).getProductImagesModelsArrList()
-                .get(0).getProductImage()).error(R.drawable.no_image).into(productImg);
-        if (!singleProductArrayList.get(0).getDiscountAmount().equals("0")) {
-            String originalPrice, disPercent, sellingPrice;
-            originalPrice = singleProductArrayList.get(0).getProductMRP();
-            disPercent = singleProductArrayList.get(0).getDiscountPercentage();
-            sellingPrice = singleProductArrayList.get(0).getProductPrice();
+        // Load main product image
+        Glide.with(this)
+                .load(product.getProductImagesModelsArrList().get(0).getProductImage())
+                .error(R.drawable.no_image)
+                .into(productImg);
 
-            // Create a SpannableString for the original price with strikethrough
+        // Set price and discount
+        if (!product.getDiscountAmount().equals("0")) {
+            String originalPrice = product.getProductMRP();
+            String disPercent = product.getDiscountPercentage();
+            String sellingPrice = product.getProductPrice();
+
+            // Strikethrough for original price
             SpannableString spannableOriginalPrice = new SpannableString("₹" + originalPrice);
             spannableOriginalPrice.setSpan(new StrikethroughSpan(), 0, spannableOriginalPrice.length(), 0);
-            // Create the discount text
-            String discountText = "(-" + disPercent + "%)";
+
+            // Combine selling price and original price
             spannableText = new SpannableStringBuilder();
-            spannableText.append("₹" + sellingPrice + " ");
+            spannableText.append("₹").append(sellingPrice).append(" ");
             spannableText.append(spannableOriginalPrice);
-            spannableText.append(" " + discountText);
-            // Set the color for the discount percentage
-            int startIndex = spannableText.length() - discountText.length();
-            spannableText.setSpan(new ForegroundColorSpan(Color.GREEN), startIndex, spannableText.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
+            // Apply to price TextView
             productPriceTxt.setText(spannableText);
-        }else {
-            productPriceTxt.setText("₹ " + singleProductArrayList.get(0).getProductPrice());
+
+            // Set discount percent separately (you can show this in a separate TextView like: productDiscountTxt)
+            String discountText = "-" + disPercent + "%";
+            SpannableString discountSpan = new SpannableString(discountText);
+            discountSpan.setSpan(new ForegroundColorSpan(Color.GREEN), 0, discountText.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            // Example usage if you have a separate TextView for discount
+            productDiscountTxt.setVisibility(View.VISIBLE);
+            productDiscountTxt.setText(discountSpan);
+        } else {
+            productPriceTxt.setText("₹" + product.getProductPrice());
+
+            // Hide discount text if no discount
+            productDiscountTxt.setVisibility(View.GONE);
         }
 
+        // Load all images
         ArrayList<String> images = new ArrayList<>();
-        for (int i = 0; i < singleProductArrayList.get(0).getProductImagesModelsArrList().size(); i++) {
-            images.add(singleProductArrayList.get(i).getProductImagesModelsArrList().get(i).getProductImage());
+        for (ProductImagesModel imgModel : product.getProductImagesModelsArrList()) {
+            images.add(imgModel.getProductImage());
         }
 
-//        productAllImagesRecycler.setAdapter(new AllImagesRecyclerAdapter(images, SingleProductDetailsActivity.this));
+        // If you have the adapter ready, set it
+        // productAllImagesRecycler.setAdapter(new AllImagesRecyclerAdapter(images, SingleProductDetailsActivity.this));
 
         progressBarDialog.dismiss();
         nestedScrollView.setVisibility(View.VISIBLE);
     }
+
 
     private String parseTags(JSONArray tagsArray) throws JSONException {
         StringBuilder tags = new StringBuilder();
